@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>BMS — Seguimiento de Mantenimientos</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --azul:#1565c0;--azul2:#1e88e5;--azul-light:#e3f2fd;
+  --verde:#1b5e20;--verde2:#2e7d32;--verde-light:#e8f5e9;
+  --naranja:#e65100;--naranja-light:#fff3e0;
+  --rojo:#b71c1c;--rojo-light:#ffebee;
+  --gris:#f0f4f8;--borde:#cfd8e3;--texto:#0d1b2a;--muted:#607d8b;
+  --blanco:#fff;--r:10px;
+  --tec:#0F6E56;--tec-bg:#E1F5EE;--tec-borde:#5DCAA5;
+  --pro:#993C1D;--pro-bg:#FAECE7;--pro-borde:#F0997B;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--gris);color:var(--texto);min-height:100vh;font-size:14px}
+header{background:linear-gradient(135deg,var(--azul),var(--azul2));color:#fff;padding:0 16px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:300;box-shadow:0 2px 12px rgba(21,101,192,.35)}
+.logo-icon{width:32px;height:32px;background:rgba(255,255,255,.18);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.header-info h1{font-size:15px;font-weight:600}
+.header-info p{font-size:11px;opacity:.75;margin-top:1px}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.date-badge{font-size:11px;background:rgba(255,255,255,.15);padding:4px 10px;border-radius:20px}
+.sync-badge{font-size:11px;padding:4px 10px;border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:4px}
+.sync-ok{background:rgba(76,175,80,.3);color:#fff}
+.sync-err{background:rgba(244,67,54,.3);color:#fff}
+.sync-local{background:rgba(255,255,255,.2);color:#fff}
+.sync-loading{background:rgba(255,255,255,.15);color:#fff}
+nav{background:var(--blanco);border-bottom:1px solid var(--borde);display:flex;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.tab{padding:12px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.tab.active{color:var(--azul);border-bottom-color:var(--azul)}
+.tab:hover{color:var(--azul2);background:var(--azul-light)}
+.page{display:none;padding:16px;max-width:900px;margin:0 auto}
+.page.active{display:block}
+.card{background:var(--blanco);border:1px solid var(--borde);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:14px;font-weight:600}
+.card-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.form-grid{grid-template-columns:1fr}}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+label{font-size:12px;font-weight:500;color:var(--muted)}
+input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--borde);border-radius:8px;font-size:13px;color:var(--texto);background:var(--blanco);font-family:inherit;transition:border .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--azul2);box-shadow:0 0 0 3px rgba(30,136,229,.12)}
+textarea{resize:vertical;min-height:72px}
+.required::after{content:' *';color:var(--rojo)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.btn-primary{background:var(--azul2);color:#fff}.btn-primary:hover{background:var(--azul)}
+.btn-success{background:var(--verde2);color:#fff}.btn-success:hover{background:var(--verde)}
+.btn-outline{background:transparent;color:var(--azul2);border:1px solid var(--azul2)}.btn-outline:hover{background:var(--azul-light)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-danger{background:var(--rojo-light);color:var(--rojo);border:1px solid #f9a8a8}
+.btn-excel{background:#217346;color:#fff}.btn-excel:hover{background:#1a5c38}
+.btn-pdf{background:#c0392b;color:#fff}.btn-pdf:hover{background:#a93226}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge-prev{background:#e3f2fd;color:#1565c0}
+.badge-corr{background:#fff3e0;color:#e65100}
+.badge-pend{background:#fff8e1;color:#f57f17}
+.badge-prog{background:#e3f2fd;color:#1565c0}
+.badge-comp{background:#e8f5e9;color:#2e7d32}
+.badge-venc{background:#ffebee;color:#b71c1c}
+.badge-int{background:var(--tec-bg);color:var(--tec)}
+.badge-ext{background:var(--pro-bg);color:var(--pro)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--blanco);border:1px solid var(--borde);border-radius:var(--r);padding:14px 16px;text-align:center}
+.kpi-val{font-size:28px;font-weight:700;line-height:1}
+.kpi-lbl{font-size:11px;color:var(--muted);margin-top:4px}
+.kpi-blue .kpi-val{color:var(--azul2)}.kpi-green .kpi-val{color:var(--verde2)}.kpi-orange .kpi-val{color:var(--naranja)}.kpi-red .kpi-val{color:var(--rojo)}
+.table-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--borde)}
+table{width:100%;border-collapse:collapse;min-width:580px}
+th{background:var(--gris);padding:10px 12px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid var(--borde)}
+td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--borde);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f7fafd}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.filters select,.filters input{padding:7px 10px;font-size:12px;border-radius:8px;border:1px solid var(--borde);background:var(--blanco);color:var(--texto)}
+.sec-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--borde)}
+.prog-item{background:var(--blanco);border:1px solid var(--borde);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.prog-item.completado{opacity:.6;border-color:var(--verde2);background:var(--verde-light)}
+.prog-sistema{width:36px;height:36px;border-radius:8px;background:var(--gris);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.prog-info{flex:1;min-width:0}
+.prog-nombre{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog-detalle{font-size:11px;color:var(--muted);margin-top:2px}
+.prog-actions{display:flex;gap:6px;flex-shrink:0}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--blanco);border-radius:14px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--borde);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--blanco)}
+.modal-header h3{font-size:15px;font-weight:600}
+.modal-close{width:28px;height:28px;border:none;background:var(--gris);border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.modal-body{padding:20px}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--borde);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--blanco)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1f2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:600;transition:transform .3s;pointer-events:none;max-width:320px;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.bar-group{margin-bottom:10px}
+.bar-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.bar-track{background:var(--gris);border-radius:4px;height:10px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.bar-blue{background:var(--azul2)}.bar-green{background:var(--verde2)}.bar-orange{background:var(--naranja)}
+.export-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.foto-upload-area{border:2px dashed var(--borde);border-radius:8px;padding:18px;text-align:center;cursor:pointer;transition:all .15s;background:var(--gris)}
+.foto-upload-area:hover{border-color:var(--azul2);background:var(--azul-light)}
+.foto-upload-area p{font-size:12px;color:var(--muted);margin-top:6px}
+.fotos-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.foto-thumb{position:relative;width:76px;height:76px;border-radius:8px;overflow:hidden;border:1px solid var(--borde)}
+.foto-thumb img{width:100%;height:100%;object-fit:cover;cursor:pointer}
+.del-foto{position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.info-box{background:var(--azul-light);border:1px solid var(--azul-mid,#bbdefb);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--azul);margin-bottom:14px;display:flex;align-items:flex-start;gap:8px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+    </svg>
+  </div>
+  <div class="header-info">
+    <h1>BMS — Mantenimientos</h1>
+    <p>Seguimiento preventivo y correctivo</p>
+  </div>
+  <div class="header-right">
+    <span class="date-badge" id="fecha-hoy"></span>
+    <span class="sync-badge sync-loading" id="sync-status" title="Clic para sincronizar">
+      <span class="spinner" id="sync-spinner"></span>
+      <span id="sync-txt">Conectando...</span>
+    </span>
+  </div>
+</header>
+
+<nav>
+  <div class="tab active"  onclick="goTab('dashboard',this)">Dashboard</div>
+  <div class="tab"         onclick="goTab('programacion',this)">Programacion</div>
+  <div class="tab"         onclick="goTab('nuevo',this)">+ Nuevo</div>
+  <div class="tab"         onclick="goTab('historial',this)">Historial</div>
+  <div class="tab"         onclick="goTab('proveedor',this)">Proveedor</div>
+</nav>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div class="sec-label">Resumen general</div>
+  <div class="kpi-grid" id="kpi-grid"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-header"><div><div class="card-title">Cumplimiento por sistema</div><div class="card-sub">Trabajos completados</div></div></div>
+      <div id="chart-sistemas"></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-header"><div><div class="card-title">Internos vs Proveedores</div></div></div>
+      <div id="chart-tipos"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Trabajos urgentes / criticos</div></div>
+    <div id="tabla-urgentes"></div>
+  </div>
+</div>
+
+<!-- PROGRAMACION -->
+<div id="page-programacion" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div>
+      <div style="font-size:16px;font-weight:600">Programacion semanal</div>
+      <div style="font-size:12px;color:var(--muted)" id="semana-label"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="abrirModalProg()">+ Agregar</button>
+  </div>
+  <div class="info-box">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    Los tecnicos ven esta programacion en tiempo real desde su dispositivo. Al completar un trabajo deben registrarlo en "+ Nuevo".
+  </div>
+  <div class="filters">
+    <select id="fil-prog-sistema" onchange="renderProg()"><option value="">Todos los sistemas</option></select>
+    <select id="fil-prog-estado" onchange="renderProg()">
+      <option value="">Todos los estados</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="en_progreso">En progreso</option>
+      <option value="completado">Completado</option>
+    </select>
+    <select id="fil-prog-tipo" onchange="renderProg()">
+      <option value="">Prev. y Corr.</option>
+      <option value="preventivo">Preventivo</option>
+      <option value="correctivo">Correctivo</option>
+    </select>
+  </div>
+  <div id="lista-prog"></div>
+</div>
+
+<!-- NUEVO -->
+<div id="page-nuevo" class="page">
+  <div class="card">
+    <div class="card-header"><div class="card-title">Registrar trabajo ejecutado</div><div class="card-sub">Completa al finalizar el mantenimiento</div></div>
+    <!-- Banner OT vinculada -->
+    <div id="n-ot-banner" style="display:none;align-items:center;gap:10px;background:#e3f2fd;border:1px solid #90caf9;border-radius:8px;padding:10px 14px;margin-bottom:14px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <div style="flex:1;font-size:13px;color:#1565c0">Ejecutando OT: <strong id="n-ot-label"></strong></div>
+      <button onclick="cancelarOT()" style="background:none;border:none;color:#1565c0;cursor:pointer;font-size:18px;line-height:1">&times;</button>
+    </div>
+    <input type="hidden" id="n-ot-ref" value="">
+    <div class="form-grid">
+      <div class="form-group"><label class="required">Tipo</label>
+        <select id="n-tipo"><option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option></select>
+      </div>
+      <div class="form-group"><label class="required">Ejecutado por</label>
+        <select id="n-ejecutor"><option value="interno">Tecnico interno</option><option value="proveedor">Proveedor externo</option></select>
+      </div>
+      <div class="form-group"><label class="required">Sistema BMS</label>
+        <select id="n-sistema"><option value="">Seleccionar</option></select>
+      </div>
+      <div class="form-group"><label class="required">Piso / Nivel</label>
+        <select id="n-piso"><option value="">Seleccionar</option></select>
+      </div>
+      <div class="form-group"><label class="required">Equipo / TAG</label>
+        <input type="text" id="n-equipo" placeholder="Ej: AC-P5-01">
+      </div>
+      <div class="form-group"><label class="required">Responsable</label>
+        <input type="text" id="n-responsable" placeholder="Nombre del tecnico">
+      </div>
+      <div class="form-group"><label class="required">Fecha</label>
+        <input type="date" id="n-fecha">
+      </div>
+      <div class="form-group"><label>Estado</label>
+        <select id="n-estado">
+          <option value="completado">Completado</option>
+          <option value="en_progreso">En progreso</option>
+          <option value="pendiente">Pendiente</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>Observaciones</label>
+        <textarea id="n-obs" placeholder="Detalles del trabajo, fallas detectadas, materiales usados..."></textarea>
+      </div>
+      <div class="form-group full">
+        <label>Fotos del trabajo (max. 5)</label>
+        <div class="foto-upload-area" onclick="document.getElementById('n-fotos-input').click()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <p>Toca para agregar fotos desde tu camara o galeria</p>
+        </div>
+        <input type="file" id="n-fotos-input" accept="image/*" multiple style="display:none" onchange="agregarFotos(this,'n-fotos-preview','n-fotos-data')">
+        <div class="fotos-preview" id="n-fotos-preview"></div>
+        <input type="hidden" id="n-fotos-data" value="[]">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn btn-outline" onclick="limpiarForm()">Limpiar</button>
+      <button class="btn btn-primary" onclick="guardarMant()">Guardar y sincronizar</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORIAL -->
+<div id="page-historial" class="page">
+  <div class="export-bar">
+    <button class="btn btn-outline btn-sm" onclick="sincronizar()">&#8635; Actualizar</button>
+    <button class="btn btn-excel btn-sm" onclick="exportarExcel()">&#128202; Exportar Excel</button>
+    <button class="btn btn-pdf btn-sm" onclick="exportarPDF()">&#128196; Reporte PDF</button>
+  </div>
+  <div class="filters">
+    <input type="text" id="fil-buscar" placeholder="Buscar equipo, responsable..." onkeyup="renderHistorial()" style="flex:1;min-width:140px">
+    <select id="fil-sistema" onchange="renderHistorial()"><option value="">Todos los sistemas</option></select>
+    <select id="fil-tipo" onchange="renderHistorial()">
+      <option value="">Prev. y Corr.</option>
+      <option value="preventivo">Preventivo</option>
+      <option value="correctivo">Correctivo</option>
+    </select>
+    <select id="fil-estado" onchange="renderHistorial()">
+      <option value="">Todos los estados</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="en_progreso">En progreso</option>
+      <option value="completado">Completado</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fecha</th><th>Sistema</th><th>Equipo</th><th>Piso</th><th>Tipo</th><th>Responsable</th><th>Estado</th><th>Fotos</th><th>Acc.</th></tr></thead>
+      <tbody id="tbody-hist"></tbody>
+    </table>
+  </div>
+  <div id="hist-empty" class="empty" style="display:none"><div class="empty-icon">&#128203;</div><p>Sin registros.</p></div>
+</div>
+
+<!-- PROVEEDOR -->
+<div id="page-proveedor" class="page">
+  <div class="card" style="border-left:4px solid var(--pro)">
+    <div class="card-header">
+      <div><div class="card-title">Reporte de proveedor externo</div><div class="card-sub">Llena este formulario al finalizar el trabajo</div></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label class="required">Empresa</label><input type="text" id="p-empresa" placeholder="Nombre de la empresa"></div>
+      <div class="form-group"><label class="required">Tecnico que atendio</label><input type="text" id="p-tecnico" placeholder="Nombre completo"></div>
+      <div class="form-group"><label class="required">Sistema BMS</label><select id="p-sistema"><option value="">Seleccionar</option></select></div>
+      <div class="form-group"><label class="required">Piso / Nivel</label><select id="p-piso"><option value="">Seleccionar</option></select></div>
+      <div class="form-group"><label class="required">Equipo / TAG</label><input type="text" id="p-equipo" placeholder="Identificador del equipo"></div>
+      <div class="form-group"><label class="required">Fecha de atencion</label><input type="date" id="p-fecha"></div>
+      <div class="form-group"><label class="required">Tipo</label>
+        <select id="p-tipo"><option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option></select>
+      </div>
+      <div class="form-group"><label>Estado al finalizar</label>
+        <select id="p-estado"><option value="completado">Operativo — trabajo completado</option><option value="pendiente">Requiere revision adicional</option></select>
+      </div>
+      <div class="form-group full"><label class="required">Trabajo realizado</label>
+        <textarea id="p-obs" placeholder="Describa el trabajo, materiales usados, observaciones..."></textarea>
+      </div>
+      <div class="form-group full">
+        <label>Fotos del trabajo (max. 5)</label>
+        <div class="foto-upload-area" onclick="document.getElementById('p-fotos-input').click()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <p>Toca para adjuntar fotos del trabajo realizado</p>
+        </div>
+        <input type="file" id="p-fotos-input" accept="image/*" multiple style="display:none" onchange="agregarFotos(this,'p-fotos-preview','p-fotos-data')">
+        <div class="fotos-preview" id="p-fotos-preview"></div>
+        <input type="hidden" id="p-fotos-data" value="[]">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-success" onclick="guardarProveedor()">Enviar reporte</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROGRAMACION -->
+<div class="modal-overlay" id="modal-prog">
+  <div class="modal">
+    <div class="modal-header"><h3>Agregar a programacion</h3><button class="modal-close" onclick="cerrarModal('modal-prog')">&#x2715;</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>N° OT</label><input type="text" id="mp-ot" placeholder="Auto: OT-001" readonly style="background:var(--gris);color:var(--muted)"></div>
+        <div class="form-group"><label class="required">Fecha</label><input type="date" id="mp-fecha"></div>
+        <div class="form-group"><label class="required">Sistema</label><select id="mp-sistema"><option value="">Seleccionar</option></select></div>
+        <div class="form-group"><label class="required">Piso</label><select id="mp-piso"><option value="">Seleccionar</option></select></div>
+        <div class="form-group"><label class="required">Equipo / TAG</label><input type="text" id="mp-equipo" placeholder="Ej: AC-P3-02"></div>
+        <div class="form-group"><label class="required">Responsable</label><input type="text" id="mp-resp" placeholder="Tecnico o empresa"></div>
+        <div class="form-group"><label class="required">Tipo</label>
+          <select id="mp-tipo"><option value="preventivo">Preventivo</option><option value="correctivo">Correctivo</option></select>
+        </div>
+        <div class="form-group"><label class="required">Ejecutor</label>
+          <select id="mp-exec"><option value="interno">Interno</option><option value="proveedor">Proveedor</option></select>
+        </div>
+        <div class="form-group"><label>Prioridad</label>
+          <select id="mp-prior"><option value="normal">Normal</option><option value="alta">Alta</option><option value="critica">Critica</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="cerrarModal('modal-prog')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="guardarProg()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE -->
+<div class="modal-overlay" id="modal-detalle">
+  <div class="modal">
+    <div class="modal-header"><h3 id="modal-det-titulo">Detalle</h3><button class="modal-close" onclick="cerrarModal('modal-detalle')">&#x2715;</button></div>
+    <div class="modal-body" id="modal-det-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="btn-eliminar">Eliminar</button>
+      <button class="btn btn-outline btn-sm" onclick="cerrarModal('modal-detalle')">Cerrar</button>
+      <button class="btn btn-success btn-sm" id="btn-completar">Marcar completado</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_URL = 'https://script.google.com/macros/s/AKfycbysM_cWs8Tg8LF4jeyxskpfALqMCvGL2qCL1lVECd702NfYuyBVTbkYrn4OL-uOMXraHA/exec';
+
+var SISTEMAS = [
+  {id:'hvac',      nombre:'HVAC / Aire Acondicionado', emoji:'❄️'},
+  {id:'electrico', nombre:'Electricidad / Tableros',   emoji:'⚡'},
+  {id:'generador', nombre:'Grupo Electrogeno',          emoji:'🔋'},
+  {id:'ups',       nombre:'UPS',                        emoji:'🔌'},
+  {id:'cctv',      nombre:'CCTV / Seguridad',           emoji:'📷'},
+  {id:'acceso',    nombre:'Control de Acceso',          emoji:'🔐'},
+  {id:'incendio',  nombre:'Deteccion de Incendio',      emoji:'🔥'},
+  {id:'ascensor',  nombre:'Ascensores',                 emoji:'🏗️'},
+  {id:'fontaneria',nombre:'Fontaneria / Plomeria',      emoji:'🔧'}
+];
+
+var PISOS = [
+  'Sotano 2','Sotano 1','Oficina 1','Plaza Hundida','Business Center','Global Market',
+  'Piso 1','Piso 2','Piso 3','Piso 4','Piso 5','Piso 6','Piso 7','Piso 8','Piso 9',
+  'Piso 10','Piso 11','Piso 12','Piso 13','Piso 14','Piso 15','Piso 16','Piso 17',
+  'Piso 18','Piso 19','Azotea','Sala de Maquinas'
+];
+
+var ESTADOS_LABEL = {pendiente:'Pendiente', en_progreso:'En progreso', completado:'Completado'};
+var ESTADOS_BADGE = {pendiente:'badge-pend', en_progreso:'badge-prog', completado:'badge-comp'};
+
+var DB = {mantenimientos:[], programacion:[]};
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+function saveLocal(){
+  try{
+    localStorage.setItem('bms_mant', JSON.stringify(DB.mantenimientos));
+    localStorage.setItem('bms_prog',  JSON.stringify(DB.programacion));
+  }catch(e){}
+}
+
+function loadLocal(){
+  try{
+    var m=localStorage.getItem('bms_mant');
+    var p=localStorage.getItem('bms_prog');
+    if(m) DB.mantenimientos=JSON.parse(m);
+    if(p) DB.programacion=JSON.parse(p);
+  }catch(e){}
+}
+
+// ── SYNC CON GOOGLE SHEETS ────────────────────────────────────
+function setSyncStatus(state, msg){
+  var badge=document.getElementById('sync-status');
+  var spinner=document.getElementById('sync-spinner');
+  var txt=document.getElementById('sync-txt');
+  badge.className='sync-badge';
+  if(state==='ok'){badge.classList.add('sync-ok'); spinner.style.display='none'; txt.textContent=msg||'Sincronizado';}
+  else if(state==='err'){badge.classList.add('sync-err'); spinner.style.display='none'; txt.textContent=msg||'Sin conexion';}
+  else if(state==='local'){badge.classList.add('sync-local'); spinner.style.display='none'; txt.textContent=msg||'Modo local';}
+  else{badge.classList.add('sync-loading'); spinner.style.display='inline-block'; txt.textContent=msg||'Sincronizando...';}
+}
+
+function sincronizar(){
+  setSyncStatus('loading','Sincronizando...');
+  // Cargar mantenimientos
+  fetch(API_URL+'?action=get&sheet=mantenimientos')
+    .then(function(r){return r.json();})
+    .then(function(res){
+      if(res.ok && res.data){
+        // Mapear campos del Sheet a formato interno
+        DB.mantenimientos = res.data.map(function(r){
+          return {
+            id: r['ID']||uid(),
+            fecha: r['Fecha']||'',
+            sistema: r['Sistema']||'',
+            equipo: r['Equipo']||'',
+            piso: r['Piso']||'',
+            tipo: r['Tipo']||'preventivo',
+            ejecutor: r['Ejecutor']||'interno',
+            responsable: r['Responsable']||'',
+            estado: r['Estado']||'pendiente',
+            obs: r['Observaciones']||'',
+            fotos: Array.isArray(r['Fotos'])?r['Fotos']:[],
+            ts: Date.now()
+          };
+        });
+      }
+      // Cargar programacion
+      return fetch(API_URL+'?action=get&sheet=programacion');
+    })
+    .then(function(r){return r.json();})
+    .then(function(res){
+      if(res.ok && res.data){
+        DB.programacion = res.data.map(function(r){
+          return {
+            id: r['ID']||uid(),
+            ot: r['OT']||'',
+            sistema: r['Sistema']||'',
+            piso: r['Piso']||'',
+            equipo: r['Equipo']||'',
+            responsable: r['Responsable']||'',
+            tipo: r['Tipo']||'preventivo',
+            ejecutor: r['Ejecutor']||'interno',
+            fecha: r['Fecha']||'',
+            prior: r['Prioridad']||'normal',
+            estado: r['Estado']||'pendiente'
+          };
+        });
+      }
+      saveLocal();
+      setSyncStatus('ok','Sincronizado');
+      renderDashboard();
+      renderHistorial();
+      renderProg();
+    })
+    .catch(function(){
+      setSyncStatus('err','Sin conexion');
+      toast('Sin conexion al servidor. Usando datos locales.');
+    });
+}
+
+function apiPost(body, onOk, onErr){
+  fetch(API_URL, {method:'POST', body:JSON.stringify(body)})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res.ok) onOk(res); else onErr(res.error||'Error'); })
+    .catch(function(e){ onErr('Sin conexion'); });
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function getSistema(id){ return SISTEMAS.find(function(s){return s.id===id;})||{nombre:id,emoji:'🔩'}; }
+function formatFecha(s){ if(!s) return '—'; var p=String(s).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s; }
+function badgeEstado(e){ return '<span class="badge '+(ESTADOS_BADGE[e]||'badge-pend')+'">'+(ESTADOS_LABEL[e]||e)+'</span>'; }
+function badgeTipo(t){ return '<span class="badge '+(t==='preventivo'?'badge-prev':'badge-corr')+'">'+(t==='preventivo'?'Preventivo':'Correctivo')+'</span>'; }
+function badgeEjecutor(e){ return '<span class="badge '+(e==='interno'?'badge-int':'badge-ext')+'">'+(e==='interno'?'Interno':'Proveedor')+'</span>'; }
+
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },3000);
+}
+
+function goTab(tab,el){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById('page-'+tab).classList.add('active');
+  if(tab==='dashboard') renderDashboard();
+  if(tab==='programacion') renderProg();
+  if(tab==='historial') renderHistorial();
+}
+
+function populateSelects(){
+  var sisIds=['n-sistema','p-sistema','mp-sistema','fil-sistema','fil-prog-sistema'];
+  sisIds.forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    var isFilter=id.indexOf('fil-')===0;
+    el.innerHTML=isFilter?'<option value="">Todos los sistemas</option>':'<option value="">Seleccionar sistema</option>';
+    SISTEMAS.forEach(function(s){ var o=document.createElement('option'); o.value=s.id; o.textContent=s.emoji+' '+s.nombre; el.appendChild(o); });
+  });
+  var pisoIds=['n-piso','p-piso','mp-piso'];
+  pisoIds.forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    el.innerHTML='<option value="">Seleccionar piso</option>';
+    PISOS.forEach(function(p){ var o=document.createElement('option'); o.value=p; o.textContent=p; el.appendChild(o); });
+  });
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+function renderDashboard(){
+  var all=DB.mantenimientos;
+  var comp=all.filter(function(m){return m.estado==='completado';});
+  var pend=all.filter(function(m){return m.estado==='pendiente';});
+  var corr=all.filter(function(m){return m.tipo==='correctivo';});
+  var kpis=[{v:all.length,l:'Total registros',c:'kpi-blue'},{v:comp.length,l:'Completados',c:'kpi-green'},{v:pend.length,l:'Pendientes',c:'kpi-orange'},{v:corr.length,l:'Correctivos',c:'kpi-red'}];
+  document.getElementById('kpi-grid').innerHTML=kpis.map(function(k){return '<div class="kpi '+k.c+'"><div class="kpi-val">'+k.v+'</div><div class="kpi-lbl">'+k.l+'</div></div>';}).join('');
+  var csEl=document.getElementById('chart-sistemas');
+  if(all.length){
+    var html='';
+    SISTEMAS.forEach(function(s){
+      var tot=all.filter(function(m){return m.sistema===s.id;}).length;
+      var c=all.filter(function(m){return m.sistema===s.id&&m.estado==='completado';}).length;
+      if(!tot) return;
+      html+='<div class="bar-group"><div class="bar-label"><span>'+s.emoji+' '+s.nombre+'</span><span>'+c+'/'+tot+'</span></div><div class="bar-track"><div class="bar-fill bar-blue" style="width:'+Math.round(c/tot*100)+'%"></div></div></div>';
+    });
+    csEl.innerHTML=html||'<p style="font-size:12px;color:var(--muted)">Sin datos</p>';
+  } else { csEl.innerHTML='<p style="font-size:12px;color:var(--muted)">Sin registros aun.</p>'; }
+  var intN=all.filter(function(m){return m.ejecutor==='interno';}).length;
+  var extN=all.filter(function(m){return m.ejecutor==='proveedor';}).length;
+  var tot2=intN+extN||1;
+  document.getElementById('chart-tipos').innerHTML=
+    '<div class="bar-group"><div class="bar-label"><span>Tecnicos internos</span><span>'+intN+'</span></div><div class="bar-track"><div class="bar-fill bar-green" style="width:'+Math.round(intN/tot2*100)+'%"></div></div></div>'+
+    '<div class="bar-group"><div class="bar-label"><span>Proveedores externos</span><span>'+extN+'</span></div><div class="bar-track"><div class="bar-fill bar-orange" style="width:'+Math.round(extN/tot2*100)+'%"></div></div></div>';
+  var urg=DB.programacion.filter(function(p){return p.prior==='critica'||p.prior==='alta';});
+  var urgEl=document.getElementById('tabla-urgentes');
+  if(urg.length){
+    var rows=urg.map(function(p){
+      var s=getSistema(p.sistema);
+      return '<tr><td>'+s.emoji+' '+s.nombre+'</td><td>'+p.piso+'</td><td>'+p.equipo+'</td><td>'+p.responsable+'</td><td>'+badgeTipo(p.tipo)+'</td><td><span class="badge '+(p.prior==='critica'?'badge-venc':'badge-pend')+'">'+p.prior+'</span></td><td>'+badgeEstado(p.estado)+'</td></tr>';
+    }).join('');
+    urgEl.innerHTML='<div class="table-wrap"><table><thead><tr><th>Sistema</th><th>Piso</th><th>Equipo</th><th>Responsable</th><th>Tipo</th><th>Prioridad</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  } else { urgEl.innerHTML='<div class="empty"><div class="empty-icon">&#10003;</div><p>Sin trabajos urgentes pendientes.</p></div>'; }
+}
+
+// ── PROGRAMACION ──────────────────────────────────────────────
+function renderProg(){
+  var hoy=new Date(); var lun=new Date(hoy); lun.setDate(hoy.getDate()-hoy.getDay()+1);
+  var dom=new Date(lun); dom.setDate(lun.getDate()+6);
+  function fd(d){return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();}
+  document.getElementById('semana-label').textContent='Semana: '+fd(lun)+' al '+fd(dom);
+  var fS=document.getElementById('fil-prog-sistema').value;
+  var fE=document.getElementById('fil-prog-estado').value;
+  var fT=document.getElementById('fil-prog-tipo').value;
+  var items=DB.programacion.filter(function(p){return (!fS||p.sistema===fS)&&(!fE||p.estado===fE)&&(!fT||p.tipo===fT);});
+  var cont=document.getElementById('lista-prog');
+  if(!items.length){cont.innerHTML='<div class="empty"><div class="empty-icon">&#128197;</div><p>No hay trabajos programados.</p></div>';return;}
+  cont.innerHTML=items.map(function(p){
+    var s=getSistema(p.sistema);
+    var pc=p.prior==='critica'?'#b71c1c':p.prior==='alta'?'#e65100':'#607d8b';
+    var otLabel=p.ot?'<span class="badge" style="background:var(--azul);color:#fff;font-weight:700">'+p.ot+'</span> ':'';
+    return '<div class="prog-item '+(p.estado==='completado'?'completado':'')+'">'+
+      '<div class="prog-sistema">'+s.emoji+'</div>'+
+      '<div class="prog-info">'+
+      '<div class="prog-nombre">'+otLabel+s.nombre+' — '+p.equipo+'</div>'+
+      '<div class="prog-detalle">'+p.piso+' &middot; '+p.responsable+' &middot; '+formatFecha(p.fecha)+'</div>'+
+      '<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">'+badgeTipo(p.tipo)+badgeEjecutor(p.ejecutor)+
+      '<span class="badge" style="background:var(--gris);color:'+pc+'">'+p.prior+'</span></div></div>'+
+      '<div class="prog-actions">'+
+      (p.estado!=='completado'?'<button class="btn btn-primary btn-sm" onclick="ejecutarOT(\''+p.id+'\')">&#9654; Ejecutar</button>':
+      '<span class="badge badge-comp">&#10003; Completado</span>')+
+      ' <button class="btn btn-danger btn-sm" onclick="eliminarProg(\''+p.id+'\')">&#x2715;</button></div></div>';
+  }).join('');
+}
+
+function generarOT(){
+  var nums=DB.programacion.map(function(p){
+    var m=p.ot&&p.ot.match(/OT-(\d+)/);
+    return m?parseInt(m[1]):0;
+  });
+  var next=(nums.length?Math.max.apply(null,nums):0)+1;
+  return 'OT-'+String(next).padStart(3,'0');
+}
+
+function abrirModalProg(){
+  document.getElementById('mp-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('mp-ot').value=generarOT();
+  document.getElementById('modal-prog').classList.add('open');
+}
+
+function guardarProg(){
+  var sis=document.getElementById('mp-sistema').value;
+  var piso=document.getElementById('mp-piso').value;
+  var eq=document.getElementById('mp-equipo').value.trim();
+  var resp=document.getElementById('mp-resp').value.trim();
+  var fecha=document.getElementById('mp-fecha').value;
+  var ot=document.getElementById('mp-ot').value;
+  if(!sis||!piso||!eq||!resp||!fecha){toast('Completa todos los campos.');return;}
+  var item={id:uid(),ot:ot,sistema:sis,piso:piso,equipo:eq,responsable:resp,
+    tipo:document.getElementById('mp-tipo').value,ejecutor:document.getElementById('mp-exec').value,
+    fecha:fecha,prior:document.getElementById('mp-prior').value,estado:'pendiente'};
+  DB.programacion.push(item);
+  saveLocal(); renderProg(); cerrarModal('modal-prog');
+  apiPost({action:'save',sheet:'programacion',data:item},
+    function(){ toast('OT '+ot+' guardada y sincronizada.'); },
+    function(){ toast('OT guardada localmente. Sin conexion al servidor.'); }
+  );
+}
+
+function completarProg(id){
+  var p=DB.programacion.find(function(x){return x.id===id;});
+  if(!p) return;
+  p.estado='completado'; saveLocal(); renderProg();
+  apiPost({action:'update',sheet:'programacion',id:id,field:'Estado',value:'completado'},
+    function(){ toast('Marcado como completado y sincronizado.'); },
+    function(){ toast('Actualizado localmente. Sin conexion.'); }
+  );
+}
+
+function ejecutarOT(id){
+  var p=DB.programacion.find(function(x){return x.id===id;});
+  if(!p) return;
+  // Prellenar formulario + Nuevo con datos de la OT
+  document.getElementById('n-tipo').value=p.tipo||'preventivo';
+  document.getElementById('n-ejecutor').value=p.ejecutor||'interno';
+  document.getElementById('n-sistema').value=p.sistema||'';
+  document.getElementById('n-piso').value=p.piso||'';
+  document.getElementById('n-equipo').value=p.equipo||'';
+  document.getElementById('n-responsable').value=p.responsable||'';
+  document.getElementById('n-fecha').value=p.fecha||new Date().toISOString().split('T')[0];
+  document.getElementById('n-estado').value='completado';
+  document.getElementById('n-obs').value='';
+  document.getElementById('n-fotos-preview').innerHTML='';
+  document.getElementById('n-fotos-data').value='[]';
+  // Guardar referencia a la OT para vincularla al guardar
+  document.getElementById('n-ot-ref').value=p.id;
+  document.getElementById('n-ot-label').textContent=p.ot||'';
+  document.getElementById('n-ot-banner').style.display='flex';
+  // Navegar al tab + Nuevo
+  var tabs=document.querySelectorAll('.tab');
+  var pages=document.querySelectorAll('.page');
+  tabs.forEach(function(t){t.classList.remove('active');});
+  pages.forEach(function(pg){pg.classList.remove('active');});
+  tabs[2].classList.add('active');
+  document.getElementById('page-nuevo').classList.add('active');
+  window.scrollTo(0,0);
+  toast('OT '+(p.ot||'')+ ' cargada. Completa y guarda el registro.');
+}
+
+function eliminarProg(id){
+  DB.programacion=DB.programacion.filter(function(x){return x.id!==id;});
+  saveLocal(); renderProg();
+  apiPost({action:'delete',sheet:'programacion',id:id},
+    function(){ toast('Tarea eliminada.'); },
+    function(){ toast('Eliminado localmente. Sin conexion.'); }
+  );
+}
+
+// ── NUEVO MANTENIMIENTO ───────────────────────────────────────
+function guardarMant(){
+  var sis=document.getElementById('n-sistema').value;
+  var piso=document.getElementById('n-piso').value;
+  var eq=document.getElementById('n-equipo').value.trim();
+  var resp=document.getElementById('n-responsable').value.trim();
+  var fecha=document.getElementById('n-fecha').value;
+  if(!sis||!piso||!eq||!resp||!fecha){toast('Completa los campos requeridos.');return;}
+  var fotos=[]; try{fotos=JSON.parse(document.getElementById('n-fotos-data').value||'[]');}catch(e){}
+  var otRef=document.getElementById('n-ot-ref').value||'';
+  var otLabel=document.getElementById('n-ot-label').textContent||'';
+  var obsBase=document.getElementById('n-obs').value.trim();
+  var obsConOT=otLabel?(otLabel+(obsBase?'\n'+obsBase:'')):obsBase;
+  var item={id:uid(),tipo:document.getElementById('n-tipo').value,
+    ejecutor:document.getElementById('n-ejecutor').value,sistema:sis,piso:piso,equipo:eq,
+    responsable:resp,fecha:fecha,estado:document.getElementById('n-estado').value,
+    obs:obsConOT,fotos:fotos,ts:Date.now(),otRef:otRef};
+  DB.mantenimientos.push(item);
+  // Si viene de una OT, marcarla como completada
+  if(otRef){
+    var prog=DB.programacion.find(function(x){return x.id===otRef;});
+    if(prog){
+      prog.estado='completado';
+      apiPost({action:'update',sheet:'programacion',id:otRef,field:'Estado',value:'completado'},
+        function(){},function(){});
+    }
+  }
+  saveLocal(); limpiarForm(); renderDashboard(); renderProg();
+  apiPost({action:'save',sheet:'mantenimientos',data:item},
+    function(){ toast('Registro guardado y sincronizado con Google Sheets.'+(otLabel?' OT '+otLabel+' completada.':'')); },
+    function(){ toast('Guardado localmente. Se sincronizara cuando haya conexion.'); }
+  );
+}
+
+function cancelarOT(){
+  document.getElementById('n-ot-ref').value='';
+  document.getElementById('n-ot-label').textContent='';
+  document.getElementById('n-ot-banner').style.display='none';
+}
+
+function limpiarForm(){
+  ['n-tipo','n-ejecutor','n-sistema','n-piso','n-estado'].forEach(function(id){document.getElementById(id).selectedIndex=0;});
+  ['n-equipo','n-responsable','n-obs'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('n-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('n-fotos-preview').innerHTML='';
+  document.getElementById('n-fotos-data').value='[]';
+  cancelarOT();
+}
+
+// ── HISTORIAL ─────────────────────────────────────────────────
+function renderHistorial(){
+  var buscar=(document.getElementById('fil-buscar').value||'').toLowerCase();
+  var fS=document.getElementById('fil-sistema').value;
+  var fT=document.getElementById('fil-tipo').value;
+  var fE=document.getElementById('fil-estado').value;
+  var items=DB.mantenimientos.filter(function(m){
+    return (!buscar||(m.equipo+m.responsable+m.piso).toLowerCase().indexOf(buscar)>=0)&&
+      (!fS||m.sistema===fS)&&(!fT||m.tipo===fT)&&(!fE||m.estado===fE);
+  }).sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+  var tbody=document.getElementById('tbody-hist');
+  var empty=document.getElementById('hist-empty');
+  if(!items.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=items.map(function(m){
+    var s=getSistema(m.sistema);
+    var nf=m.fotos&&m.fotos.length?'<span class="badge badge-prev">'+m.fotos.length+' foto(s)</span>':'—';
+    return '<tr><td>'+formatFecha(m.fecha)+'</td><td>'+s.emoji+' '+s.nombre+'</td>'+
+      '<td style="font-weight:500">'+m.equipo+'</td><td>'+m.piso+'</td><td>'+badgeTipo(m.tipo)+'</td>'+
+      '<td>'+m.responsable+'<br>'+badgeEjecutor(m.ejecutor)+'</td><td>'+badgeEstado(m.estado)+'</td>'+
+      '<td>'+nf+'</td><td><button class="btn btn-outline btn-sm" onclick="verDetalle(\''+m.id+'\')">Ver</button></td></tr>';
+  }).join('');
+}
+
+// ── DETALLE ───────────────────────────────────────────────────
+function verDetalle(id){
+  var m=DB.mantenimientos.find(function(x){return x.id===id;}); if(!m) return;
+  var s=getSistema(m.sistema);
+  document.getElementById('modal-det-titulo').textContent=s.emoji+' '+m.equipo;
+  function row(l,v){return '<div><div style="font-size:11px;color:var(--muted);margin-bottom:2px">'+l+'</div><div>'+v+'</div></div>';}
+  var fotosHtml='';
+  if(m.fotos&&m.fotos.length){
+    fotosHtml='<div style="margin-top:14px"><div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Fotos ('+m.fotos.length+')</div>'+
+      '<div class="fotos-preview">'+m.fotos.map(function(f){return '<div class="foto-thumb"><img src="'+f+'" onclick="window.open(this.src)"></div>';}).join('')+'</div></div>';
+  }
+  document.getElementById('modal-det-body').innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px">'+
+    row('Sistema',s.nombre)+row('Piso',m.piso)+row('Tipo',badgeTipo(m.tipo))+
+    row('Ejecutor',badgeEjecutor(m.ejecutor))+row('Responsable',m.responsable)+
+    row('Fecha',formatFecha(m.fecha))+row('Estado',badgeEstado(m.estado))+'</div>'+
+    (m.obs?'<div style="margin-top:14px;padding:12px;background:var(--gris);border-radius:8px;font-size:13px;color:var(--muted)">'+m.obs+'</div>':'')+fotosHtml;
+  document.getElementById('btn-completar').style.display=m.estado==='completado'?'none':'inline-flex';
+  document.getElementById('btn-eliminar').onclick=function(){
+    DB.mantenimientos=DB.mantenimientos.filter(function(x){return x.id!==id;});
+    saveLocal(); cerrarModal('modal-detalle'); renderHistorial(); renderDashboard();
+    apiPost({action:'delete',sheet:'mantenimientos',id:id},function(){toast('Eliminado.');},function(){toast('Eliminado localmente.');});
+  };
+  document.getElementById('btn-completar').onclick=function(){
+    var rec=DB.mantenimientos.find(function(x){return x.id===id;});
+    if(rec){ rec.estado='completado'; saveLocal(); cerrarModal('modal-detalle'); renderHistorial(); renderDashboard();
+      apiPost({action:'update',sheet:'mantenimientos',id:id,field:'Estado',value:'completado'},
+        function(){toast('Completado y sincronizado.');},function(){toast('Actualizado localmente.');});
+    }
+  };
+  document.getElementById('modal-detalle').classList.add('open');
+}
+
+// ── PROVEEDOR ─────────────────────────────────────────────────
+function guardarProveedor(){
+  var emp=document.getElementById('p-empresa').value.trim();
+  var tec=document.getElementById('p-tecnico').value.trim();
+  var sis=document.getElementById('p-sistema').value;
+  var piso=document.getElementById('p-piso').value;
+  var eq=document.getElementById('p-equipo').value.trim();
+  var fecha=document.getElementById('p-fecha').value;
+  var obs=document.getElementById('p-obs').value.trim();
+  if(!emp||!tec||!sis||!piso||!eq||!fecha||!obs){toast('Completa todos los campos requeridos.');return;}
+  var fotos=[]; try{fotos=JSON.parse(document.getElementById('p-fotos-data').value||'[]');}catch(e){}
+  var item={
+    id:uid(),
+    empresa:emp,
+    tecnico:tec,
+    fecha:fecha,
+    sistema:sis,
+    piso:piso,
+    equipo:eq,
+    tipo:document.getElementById('p-tipo').value,
+    estado:document.getElementById('p-estado').value,
+    obs:obs,
+    fotos:fotos,
+    ts:Date.now()
+  };
+  ['p-empresa','p-tecnico','p-equipo','p-obs'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('p-sistema').selectedIndex=0;
+  document.getElementById('p-piso').selectedIndex=0;
+  document.getElementById('p-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('p-fotos-preview').innerHTML='';
+  document.getElementById('p-fotos-data').value='[]';
+  renderDashboard();
+  apiPost({action:'save',sheet:'proveedores',data:item},
+    function(){toast('Reporte enviado y guardado en hoja Proveedores.');},
+    function(){toast('Reporte guardado localmente. Sin conexion al servidor.');});
+}
+
+// ── FOTOS ─────────────────────────────────────────────────────
+function agregarFotos(input,previewId,dataId){
+  var existing=[]; try{existing=JSON.parse(document.getElementById(dataId).value||'[]');}catch(e){}
+  if(existing.length>=5){toast('Maximo 5 fotos por registro.');input.value='';return;}
+  var files=Array.from(input.files).slice(0,5-existing.length);
+  var count=0;
+  files.forEach(function(file){
+    var reader=new FileReader();
+    reader.onload=function(e){ existing.push(e.target.result); count++;
+      if(count===files.length){ document.getElementById(dataId).value=JSON.stringify(existing); renderFotosPreview(previewId,dataId,existing); }
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+
+function renderFotosPreview(previewId,dataId,fotos){
+  document.getElementById(previewId).innerHTML=fotos.map(function(f,i){
+    return '<div class="foto-thumb"><img src="'+f+'" onclick="window.open(this.src)">'+
+      '<button class="del-foto" onclick="eliminarFotoPreview('+i+',\''+previewId+'\',\''+dataId+'\')">&#x2715;</button></div>';
+  }).join('');
+}
+
+function eliminarFotoPreview(idx,previewId,dataId){
+  var arr=[]; try{arr=JSON.parse(document.getElementById(dataId).value||'[]');}catch(e){}
+  arr.splice(idx,1); document.getElementById(dataId).value=JSON.stringify(arr);
+  renderFotosPreview(previewId,dataId,arr);
+}
+
+// ── EXPORTAR EXCEL ────────────────────────────────────────────
+function exportarExcel(){
+  var items=DB.mantenimientos;
+  if(!items.length){toast('No hay registros para exportar.');return;}
+  var headers=['Fecha','Sistema','Equipo','Piso','Tipo','Ejecutor','Responsable','Estado','Observaciones'];
+  var csv='\uFEFF'+headers.join(';')+'\n';
+  items.forEach(function(m){
+    var s=getSistema(m.sistema);
+    var row=[formatFecha(m.fecha),s.nombre,m.equipo,m.piso,
+      m.tipo==='preventivo'?'Preventivo':'Correctivo',
+      m.ejecutor==='interno'?'Interno':'Proveedor',
+      m.responsable,ESTADOS_LABEL[m.estado]||m.estado,(m.obs||'').replace(/\n/g,' ')];
+    csv+=row.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(';')+'\n';
+  });
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download='BMS_Mantenimientos_'+new Date().toISOString().split('T')[0]+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('Archivo Excel descargado.');
+}
+
+// ── EXPORTAR PDF ──────────────────────────────────────────────
+function exportarPDF(){
+  var items=DB.mantenimientos;
+  var hoy=new Date();
+  var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var comp=items.filter(function(m){return m.estado==='completado';});
+  var pend=items.filter(function(m){return m.estado==='pendiente';});
+  var corr=items.filter(function(m){return m.tipo==='correctivo';});
+  var intN=items.filter(function(m){return m.ejecutor==='interno';});
+  var extN=items.filter(function(m){return m.ejecutor==='proveedor';});
+  var pct=items.length?Math.round(comp.length/items.length*100):0;
+  var sysRows='';
+  SISTEMAS.forEach(function(s){
+    var tot=items.filter(function(m){return m.sistema===s.id;}).length;
+    var c=items.filter(function(m){return m.sistema===s.id&&m.estado==='completado';}).length;
+    if(!tot) return;
+    sysRows+='<tr><td>'+s.emoji+' '+s.nombre+'</td><td style="text-align:center">'+tot+'</td><td style="text-align:center">'+c+'</td><td style="text-align:center">'+(tot?Math.round(c/tot*100):0)+'%</td></tr>';
+  });
+  var histRows=items.slice().reverse().slice(0,30).map(function(m){
+    var s=getSistema(m.sistema);
+    return '<tr><td>'+formatFecha(m.fecha)+'</td><td>'+s.nombre+'</td><td>'+m.equipo+'</td><td>'+m.piso+'</td><td>'+(m.tipo==='preventivo'?'Prev.':'Corr.')+'</td><td>'+m.responsable+'</td><td>'+(ESTADOS_LABEL[m.estado]||m.estado)+'</td></tr>';
+  }).join('');
+  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte BMS</title><style>body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#1a1f2e;font-size:12px}h1{font-size:20px;font-weight:700;color:#1565c0;margin-bottom:2px}.sub{font-size:11px;color:#607d8b;margin-bottom:20px}.kpi-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}.kpi{background:#f0f4f8;border-radius:8px;padding:10px 14px;min-width:90px;text-align:center}.kv{font-size:22px;font-weight:700}.kl{font-size:10px;color:#607d8b;margin-top:1px}.kb{color:#1e88e5}.kg{color:#2e7d32}.ko{color:#e65100}.kr{color:#b71c1c}h2{font-size:12px;font-weight:600;color:#1565c0;margin:16px 0 6px;border-bottom:1px solid #cfd8e3;padding-bottom:3px}table{width:100%;border-collapse:collapse;margin-bottom:14px}th{background:#f0f4f8;padding:6px 8px;font-size:10px;color:#607d8b;text-align:left;border-bottom:1px solid #cfd8e3}td{padding:6px 8px;border-bottom:1px solid #f0f4f8;font-size:11px}.box-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}.box{flex:1;min-width:180px;border-radius:8px;padding:10px 14px}.box-g{background:#e8f5e9}.box-o{background:#faece7}.box-title{font-size:10px;font-weight:600;margin-bottom:3px}.box-v{font-size:20px;font-weight:700}.box-s{font-size:10px;color:#607d8b}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #cfd8e3;font-size:10px;color:#607d8b;text-align:center}@media print{.no-print{display:none}}</style></head><body>'+
+    '<h1>Reporte de Mantenimientos BMS</h1><div class="sub">Generado el '+hoy.getDate()+' de '+meses[hoy.getMonth()]+' '+hoy.getFullYear()+'</div>'+
+    '<div class="kpi-row"><div class="kpi"><div class="kv kb">'+items.length+'</div><div class="kl">Total</div></div><div class="kpi"><div class="kv kg">'+comp.length+'</div><div class="kl">Completados</div></div><div class="kpi"><div class="kv ko">'+pend.length+'</div><div class="kl">Pendientes</div></div><div class="kpi"><div class="kv kr">'+corr.length+'</div><div class="kl">Correctivos</div></div><div class="kpi"><div class="kv kb">'+pct+'%</div><div class="kl">Cumplimiento</div></div></div>'+
+    '<div class="box-row"><div class="box box-g"><div class="box-title" style="color:#2e7d32">TECNICOS INTERNOS</div><div class="box-v" style="color:#2e7d32">'+intN.length+'</div><div class="box-s">trabajos registrados</div></div>'+
+    '<div class="box box-o"><div class="box-title" style="color:#993c1d">PROVEEDORES EXTERNOS</div><div class="box-v" style="color:#993c1d">'+extN.length+'</div><div class="box-s">trabajos registrados</div></div></div>'+
+    '<h2>Cumplimiento por sistema BMS</h2><table><thead><tr><th>Sistema</th><th>Total</th><th>Completados</th><th>Cumplimiento</th></tr></thead><tbody>'+sysRows+'</tbody></table>'+
+    '<h2>Historial (ultimos 30 registros)</h2><table><thead><tr><th>Fecha</th><th>Sistema</th><th>Equipo</th><th>Piso</th><th>Tipo</th><th>Responsable</th><th>Estado</th></tr></thead><tbody>'+histRows+'</tbody></table>'+
+    '<div class="footer">BMS — Sistema de Seguimiento de Mantenimientos | Generado automaticamente</div>'+
+    '<br><button class="no-print" onclick="window.print()" style="background:#1565c0;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px">Imprimir / Guardar como PDF</button></body></html>';
+  var w=window.open('','_blank','width=900,height=700');
+  if(w){w.document.write(html);w.document.close();}
+  else{toast('Permite ventanas emergentes para ver el reporte.');}
+}
+
+// ── MODALES ───────────────────────────────────────────────────
+function cerrarModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(function(el){
+  el.addEventListener('click',function(e){if(e.target===el) el.classList.remove('open');});
+});
+
+// ── INIT ──────────────────────────────────────────────────────
+function init(){
+  var hoy=new Date();
+  var dias=['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+  var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  document.getElementById('fecha-hoy').textContent=dias[hoy.getDay()]+' '+hoy.getDate()+' '+meses[hoy.getMonth()];
+  document.getElementById('n-fecha').value=hoy.toISOString().split('T')[0];
+  document.getElementById('p-fecha').value=hoy.toISOString().split('T')[0];
+  populateSelects();
+  loadLocal();
+  renderDashboard();
+  sincronizar();
+}
+
+init();
+</script>
+</body>
+</html>
